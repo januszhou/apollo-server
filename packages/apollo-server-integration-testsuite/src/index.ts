@@ -1084,6 +1084,10 @@ export default (createApp: CreateAppFunc, destroyApp?: DestroyAppFunc) => {
           // those expectations in various stages of this test.
           const fn = jest.fn();
 
+          // We want this to create the app as fast as `createApp` will allow.
+          // for integrations whose `applyMiddleware` currently returns a
+          // Promise we want them to resolve at whatever eventual pace they
+          // will so we can make sure that things are happening in order.
           const unawaitedApp = createApp({
             graphqlOptions: {
               schema,
@@ -1108,10 +1112,8 @@ export default (createApp: CreateAppFunc, destroyApp?: DestroyAppFunc) => {
 
           resolveServerWillStart();
 
-          // Account for the fact that `createApp` might return a Promise,
-          // and might not, depending on the integration's implementation of
-          // createApp.
-          app = 'then' in unawaitedApp ? await unawaitedApp : unawaitedApp;
+          // Ok, now we're okay waiting for the app to finish before continuing.
+          await unawaitedApp;
 
           // Intentionally fire off the request asynchronously, without await.
           const res = request(app)
